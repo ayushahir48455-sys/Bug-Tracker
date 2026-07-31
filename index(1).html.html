@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG LOG — Specimen Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #14170F;
+    --panel: #1E2318;
+    --panel-alt: #262C1F;
+    --panel-raised: #2C331F;
+    --line: #3A4230;
+    --ink: #E9E4D3;
+    --muted: #8D9480;
+    --accent: #C99A3D;
+    --accent-soft: rgba(201,154,61,0.14);
+    --moss: #6B8F5C;
+    --moss-soft: rgba(107,143,92,0.14);
+    --rust: #B0402C;
+    --rust-soft: rgba(176,64,44,0.14);
+    --slate: #5B7B99;
+    --slate-soft: rgba(91,123,153,0.14);
+    --burnt: #C9793D;
+    --burnt-soft: rgba(201,121,61,0.14);
+    --shadow: 0 10px 30px rgba(0,0,0,0.35);
+    --radius: 3px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(201,154,61,0.06), transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(107,143,92,0.05), transparent 40%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,h2,h3,.display{
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  a{ color: inherit; }
+
+  ::selection{ background: var(--accent-soft); }
+
+  /* ---------- utility: paper texture on panels ---------- */
+  .grain{
+    position:relative;
+  }
+  .grain::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events:none;
+    border-radius: inherit;
+  }
+
+  /* ---------- rivet / pin dot ---------- */
+  .pin{
+    position:absolute;
+    top:10px; left:14px;
+    width:8px; height:8px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #f4e6c2, var(--accent) 60%, #7a5a1e 100%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+
+  /* ================= AUTH SCREEN ================= */
+  #auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+  }
+
+  .auth-wrap{
+    width:100%;
+    max-width: 420px;
+  }
+
+  .auth-brand{
+    text-align:center;
+    margin-bottom: 22px;
+  }
+  .auth-brand .mark{
+    font-size: 34px;
+    display:inline-block;
+    transform: rotate(-6deg);
+  }
+  .auth-brand h1{
+    font-size: 22px;
+    margin: 6px 0 2px;
+    color: var(--ink);
+  }
+  .auth-brand p{
+    margin:0;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .card{
+    position:relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .index-card{
+    padding: 30px 28px 26px;
+    border-left: 3px dashed var(--line);
+  }
+
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom: 22px;
+    background: var(--panel-alt);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 3px;
+  }
+  .tab-btn{
+    flex:1;
+    padding: 9px 10px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor:pointer;
+    border-radius: 2px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .tab-btn.active{
+    background: var(--panel-raised);
+    color: var(--accent);
+  }
+
+  .field{
+    margin-bottom: 16px;
+  }
+  .field label{
+    display:block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    background: var(--panel-alt);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 10px 11px;
+    border-radius: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .field textarea{ resize: vertical; min-height: 74px; }
+
+  .hint{
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+    line-height:1.5;
+  }
+  .hint button.linklike{
+    background:none;border:none;color:var(--accent);cursor:pointer;
+    font-family:inherit; font-size:11px; text-decoration:underline; padding:0;
+  }
+
+  .error-msg{
+    background: var(--rust-soft);
+    border: 1px solid var(--rust);
+    color: #f0c8bf;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 2px;
+    margin-bottom: 14px;
+    display:none;
+  }
+  .error-msg.show{ display:block; }
+
+  /* stamp button */
+  .stamp-btn{
+    width:100%;
+    padding: 12px;
+    background: var(--accent);
+    color: #221805;
+    border: none;
+    border-radius: 2px;
+    font-family: 'Bitter', serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor:pointer;
+    transform: rotate(0deg);
+    transition: transform .1s ease, filter .15s ease;
+  }
+  .stamp-btn:hover{ filter: brightness(1.08); }
+  .stamp-btn:active{ transform: scale(0.98); }
+
+  .demo-fill{
+    width:100%;
+    margin-top:10px;
+    padding: 9px;
+    background: transparent;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    border-radius: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor:pointer;
+  }
+  .demo-fill:hover{ border-color: var(--accent); color: var(--accent); }
+
+  /* ================= APP SCREEN ================= */
+  #app-screen{ display:none; min-height:100vh; }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    position: sticky; top:0; z-index: 20;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand .mark{ font-size:22px; transform: rotate(-6deg); display:inline-block; }
+  .brand h1{ font-size:16px; margin:0; letter-spacing:0.04em; }
+  .brand .sub{ font-size:10px; color:var(--muted); letter-spacing:0.14em; text-transform:uppercase; }
+
+  .who{
+    display:flex; align-items:center; gap:14px;
+  }
+  .who .name{
+    font-size:12px; color:var(--muted);
+  }
+  .who .name b{ color:var(--ink); }
+  .logout-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .logout-btn:hover{ border-color: var(--rust); color:#f0c8bf; }
+
+  .container{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 26px 28px 60px;
+  }
+
+  /* stats */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stat{
+    position:relative;
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    overflow:hidden;
+  }
+  .stat .num{
+    font-family:'Bitter',serif;
+    font-size: 26px;
+    font-weight:800;
+  }
+  .stat .lbl{
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .stat.open .num{ color: var(--accent); }
+  .stat.progress .num{ color: var(--slate); }
+  .stat.resolved .num{ color: var(--moss); }
+  .stat.critical .num{ color: var(--rust); }
+
+  /* toolbar */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom: 18px;
+  }
+  .toolbar input[type=text]{
+    flex:1;
+    min-width: 180px;
+    background: var(--panel);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding: 9px 12px;
+    border-radius:2px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    outline:none;
+  }
+  .toolbar input[type=text]:focus{ border-color:var(--accent); }
+  .toolbar select{
+    background: var(--panel);
+    border:1px solid var(--line);
+    color:var(--muted);
+    padding: 9px 10px;
+    border-radius:2px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    outline:none;
+  }
+  .new-btn{
+    background: var(--accent);
+    color:#221805;
+    border:none;
+    padding: 10px 16px;
+    border-radius:2px;
+    font-family:'Bitter',serif;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .new-btn:hover{ filter:brightness(1.08); }
+
+  /* bug grid */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .bug-card{
+    position:relative;
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 16px 14px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .bug-card.sev-low{ border-left-color: var(--slate); }
+  .bug-card.sev-medium{ border-left-color: var(--accent); }
+  .bug-card.sev-high{ border-left-color: var(--burnt); }
+  .bug-card.sev-critical{ border-left-color: var(--rust); }
+
+  .bug-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .specimen-no{
+    font-size:10.5px;
+    color: var(--muted);
+    letter-spacing:0.1em;
+  }
+  .bug-title{
+    font-family:'Bitter',serif;
+    font-weight:700;
+    font-size:15px;
+    margin: 3px 0 0;
+    line-height:1.3;
+  }
+
+  .badges{
+    display:flex; gap:6px; flex-wrap:wrap;
+  }
+  .stamp{
+    display:inline-block;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:0.09em;
+    text-transform:uppercase;
+    padding: 3px 7px;
+    border-radius:2px;
+    border:1.5px solid currentColor;
+    transform: rotate(-2deg);
+    white-space:nowrap;
+  }
+  .stamp.sev-low{ color: var(--slate); background: var(--slate-soft); }
+  .stamp.sev-medium{ color: var(--accent); background: var(--accent-soft); }
+  .stamp.sev-high{ color: var(--burnt); background: var(--burnt-soft); }
+  .stamp.sev-critical{ color: var(--rust); background: var(--rust-soft); }
+
+  .stamp.st-open{ color: var(--accent); background: var(--accent-soft); }
+  .stamp.st-progress{ color: var(--slate); background: var(--slate-soft); }
+  .stamp.st-resolved{ color: var(--moss); background: var(--moss-soft); }
+
+  .bug-desc{
+    font-size:12.5px;
+    color: var(--muted);
+    line-height:1.55;
+    flex:1;
+  }
+
+  .bug-meta{
+    font-size:10.5px;
+    color: var(--muted);
+    display:flex;
+    justify-content:space-between;
+    border-top: 1px dashed var(--line);
+    padding-top: 9px;
+  }
+
+  .bug-actions{
+    display:flex;
+    gap:6px;
+    margin-top: 2px;
+  }
+  .bug-actions button{
+    flex:1;
+    background: var(--panel-alt);
+    border:1px solid var(--line);
+    color: var(--muted);
+    padding: 7px 6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .bug-actions button:hover{ border-color: var(--accent); color: var(--accent); }
+  .bug-actions button.danger:hover{ border-color: var(--rust); color:#f0c8bf; }
+
+  /* empty state */
+  .empty{
+    grid-column: 1 / -1;
+    text-align:center;
+    padding: 60px 20px;
+    color: var(--muted);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+  }
+  .empty .mark{ font-size: 30px; display:block; margin-bottom:10px; transform: rotate(-6deg); }
+  .empty h3{ color: var(--ink); font-size:15px; margin: 0 0 6px; }
+  .empty p{ font-size:12px; margin:0; }
+
+  /* modal */
+  .modal-backdrop{
+    display:none;
+    position:fixed; inset:0;
+    background: rgba(10,12,7,0.6);
+    backdrop-filter: blur(2px);
+    z-index: 50;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    width:100%; max-width: 480px;
+    background: var(--panel);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px 24px 20px;
+    max-height: 90vh;
+    overflow-y:auto;
+  }
+  .modal h2{ font-size:16px; margin:0 0 16px; }
+  .modal-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-actions{
+    display:flex; gap:10px; margin-top: 6px;
+  }
+  .modal-actions .cancel-btn{
+    flex:1;
+    background:transparent;
+    border:1px solid var(--line);
+    color: var(--muted);
+    padding: 10px;
+    border-radius:2px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    cursor:pointer;
+  }
+  .modal-actions .save-btn{ flex:1; }
+
+  /* toast */
+  #toast{
+    position:fixed;
+    bottom: 22px; left:50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--panel-raised);
+    border:1px solid var(--accent);
+    color: var(--ink);
+    padding: 10px 18px;
+    border-radius: 2px;
+    font-size:12px;
+    letter-spacing:0.03em;
+    box-shadow: var(--shadow);
+    opacity:0;
+    pointer-events:none;
+    transition: opacity .2s ease, transform .2s ease;
+    z-index: 100;
+  }
+  #toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 720px){
+    .stats{ grid-template-columns: repeat(2,1fr); }
+    .modal-row{ grid-template-columns: 1fr; }
+    .topbar{ padding: 14px 16px; }
+    .container{ padding: 20px 16px 50px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+
+  :focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREEN ================= -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-brand">
+      <span class="mark">🐞</span>
+      <h1>BUG LOG</h1>
+      <p>Specimen Intake &amp; Field Tracker</p>
+    </div>
+
+    <div class="card index-card grain">
+      <div class="pin"></div>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Log In</button>
+        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <div id="login-error" class="error-msg"></div>
+      <div id="signup-error" class="error-msg"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input type="text" id="login-username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="stamp-btn">Enter Log</button>
+        <button type="button" class="demo-fill" onclick="fillDemo()">Use demo credentials</button>
+        <p class="hint">No account yet? <button type="button" class="linklike" onclick="switchTab('signup')">Create one</button></p>
+      </form>
+
+      <!-- SIGNUP FORM -->
+      <form id="signup-form" onsubmit="handleSignup(event)" style="display:none;">
+        <div class="field">
+          <label for="signup-name">Full name</label>
+          <input type="text" id="signup-name" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="signup-username">Username</label>
+          <input type="text" id="signup-username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" autocomplete="new-password" required minlength="4">
+        </div>
+        <div class="field">
+          <label for="signup-password2">Confirm password</label>
+          <input type="password" id="signup-password2" autocomplete="new-password" required minlength="4">
+        </div>
+        <button type="submit" class="stamp-btn">Register &amp; Enter</button>
+        <p class="hint">Already registered? <button type="button" class="linklike" onclick="switchTab('login')">Log in</button></p>
+      </form>
+    </div>
+    <p class="hint" style="text-align:center; margin-top:16px;">Runs entirely in this browser tab — accounts and specimens reset on reload.</p>
+  </div>
+</div>
+
+<!-- ================= APP SCREEN ================= -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark">🐞</span>
+      <div>
+        <h1>BUG LOG</h1>
+        <div class="sub">Specimen Tracker</div>
+      </div>
+    </div>
+    <div class="who">
+      <span class="name">Logged in as <b id="who-name"></b></span>
+      <button class="logout-btn" onclick="handleLogout()">Log Out</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="stats">
+      <div class="stat open"><div class="num" id="stat-open">0</div><div class="lbl">Open</div></div>
+      <div class="stat progress"><div class="num" id="stat-progress">0</div><div class="lbl">In Progress</div></div>
+      <div class="stat resolved"><div class="num" id="stat-resolved">0</div><div class="lbl">Resolved</div></div>
+      <div class="stat critical"><div class="num" id="stat-critical">0</div><div class="lbl">Critical</div></div>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="Search specimens by title or description…" oninput="renderBugs()">
+      <select id="filter-status" onchange="renderBugs()">
+        <option value="">All statuses</option>
+        <option value="open">Open</option>
+        <option value="progress">In Progress</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <select id="filter-severity" onchange="renderBugs()">
+        <option value="">All severities</option>
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+      <button class="new-btn" onclick="openBugModal()">+ New Specimen</button>
+    </div>
+
+    <div class="grid" id="bug-grid"></div>
+
+  </div>
+</div>
+
+<!-- ================= BUG MODAL ================= -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal grain">
+    <h2 id="modal-title">Log a New Specimen</h2>
+    <form id="bug-form" onsubmit="saveBug(event)">
+      <input type="hidden" id="bug-id">
+      <div class="field">
+        <label for="bug-title">Title</label>
+        <input type="text" id="bug-title" required placeholder="e.g. Login button unresponsive on Safari">
+      </div>
+      <div class="field">
+        <label for="bug-desc">Description</label>
+        <textarea id="bug-desc" required placeholder="Steps to reproduce, expected vs actual behavior…"></textarea>
+      </div>
+      <div class="modal-row">
+        <div class="field">
+          <label for="bug-severity">Severity</label>
+          <select id="bug-severity">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="bug-status">Status</label>
+          <select id="bug-status">
+            <option value="open" selected>Open</option>
+            <option value="progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" onclick="closeBugModal()">Cancel</button>
+        <button type="submit" class="stamp-btn save-btn">Save Specimen</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  /* =========================================================
+     IN-MEMORY DATA STORE
+     (No browser storage is used — data lives only for this tab
+     session and resets on reload.)
+  ========================================================= */
+  let users = [
+    { name: "Demo User", username: "demo", email: "demo@buglog.app", password: "demo123" }
+  ];
+  let currentUser = null;
+  let bugs = [];
+  let nextBugId = 1;
+
+  function seedDemoBugs(){
+    const demoBugs = [
+      { title: "Login button unresponsive on Safari", desc: "Clicking 'Log In' on Safari 17 does nothing on the first tap; second tap works. Likely an event-binding timing issue.", severity: "high", status: "open" },
+      { title: "Dashboard totals miscount resolved specimens", desc: "The 'Resolved' stat card sometimes shows one less than the actual count after editing a bug's status.", severity: "medium", status: "progress" },
+      { title: "Signup allows duplicate usernames with different casing", desc: "'JDoe' and 'jdoe' are treated as different users, which will cause login collisions later.", severity: "critical", status: "open" },
+      { title: "Search field lags on large specimen lists", desc: "Typing quickly in the search box feels laggy once there are 100+ entries. Consider debouncing.", severity: "low", status: "resolved" }
+    ];
+    demoBugs.forEach(b => {
+      bugs.push({
+        id: nextBugId++,
+        title: b.title,
+        desc: b.desc,
+        severity: b.severity,
+        status: b.status,
+        reporter: "demo",
+        createdAt: new Date()
+      });
+    });
+  }
+  seedDemoBugs();
+
+  /* =========================================================
+     AUTH SCREEN LOGIC
+  ========================================================= */
+  function switchTab(which){
+    const loginTab = document.getElementById('tab-login');
+    const signupTab = document.getElementById('tab-signup');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    hideError('login-error');
+    hideError('signup-error');
+
+    if(which === 'login'){
+      loginTab.classList.add('active');
+      signupTab.classList.remove('active');
+      loginForm.style.display = 'block';
+      signupForm.style.display = 'none';
+    } else {
+      signupTab.classList.add('active');
+      loginTab.classList.remove('active');
+      signupForm.style.display = 'block';
+      loginForm.style.display = 'none';
+    }
+  }
+
+  function fillDemo(){
+    document.getElementById('login-username').value = 'demo';
+    document.getElementById('login-password').value = 'demo123';
+  }
+
+  function showError(id, msg){
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError(id){
+    document.getElementById(id).classList.remove('show');
+  }
+
+  function handleLogin(e){
+    e.preventDefault();
+    hideError('login-error');
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if(!user || user.password !== password){
+      showError('login-error', 'Username or password is incorrect.');
+      return;
+    }
+    currentUser = user;
+    enterApp();
+  }
+
+  function handleSignup(e){
+    e.preventDefault();
+    hideError('signup-error');
+    const name = document.getElementById('signup-name').value.trim();
+    const username = document.getElementById('signup-username').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const password2 = document.getElementById('signup-password2').value;
+
+    if(users.some(u => u.username.toLowerCase() === username.toLowerCase())){
+      showError('signup-error', 'That username is already taken.');
+      return;
+    }
+    if(password !== password2){
+      showError('signup-error', 'Passwords do not match.');
+      return;
+    }
+    if(password.length < 4){
+      showError('signup-error', 'Password must be at least 4 characters.');
+      return;
+    }
+
+    const newUser = { name, username, email, password };
+    users.push(newUser);
+    currentUser = newUser;
+    enterApp();
+  }
+
+  function enterApp(){
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('who-name').textContent = currentUser.name || currentUser.username;
+    // reset auth forms
+    document.getElementById('login-form').reset();
+    document.getElementById('signup-form').reset();
+    renderBugs();
+  }
+
+  function handleLogout(){
+    currentUser = null;
+    document.getElementById('app-screen').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+    switchTab('login');
+  }
+
+  /* =========================================================
+     BUG CRUD
+  ========================================================= */
+  const statusLabel = { open: 'Open', progress: 'In Progress', resolved: 'Resolved' };
+  const statusClass = { open: 'st-open', progress: 'st-progress', resolved: 'st-resolved' };
+  const severityLabel = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Critical' };
+
+  function openBugModal(bugId){
+    const backdrop = document.getElementById('modal-backdrop');
+    const form = document.getElementById('bug-form');
+    form.reset();
+    if(bugId){
+      const bug = bugs.find(b => b.id === bugId);
+      document.getElementById('modal-title').textContent = 'Edit Specimen #' + String(bug.id).padStart(4,'0');
+      document.getElementById('bug-id').value = bug.id;
+      document.getElementById('bug-title').value = bug.title;
+      document.getElementById('bug-desc').value = bug.desc;
+      document.getElementById('bug-severity').value = bug.severity;
+      document.getElementById('bug-status').value = bug.status;
+    } else {
+      document.getElementById('modal-title').textContent = 'Log a New Specimen';
+      document.getElementById('bug-id').value = '';
+    }
+    backdrop.classList.add('show');
+    document.getElementById('bug-title').focus();
+  }
+
+  function closeBugModal(){
+    document.getElementById('modal-backdrop').classList.remove('show');
+  }
+
+  function saveBug(e){
+    e.preventDefault();
+    const id = document.getElementById('bug-id').value;
+    const title = document.getElementById('bug-title').value.trim();
+    const desc = document.getElementById('bug-desc').value.trim();
+    const severity = document.getElementById('bug-severity').value;
+    const status = document.getElementById('bug-status').value;
+
+    if(id){
+      const bug = bugs.find(b => b.id === Number(id));
+      bug.title = title;
+      bug.desc = desc;
+      bug.severity = severity;
+      bug.status = status;
+      showToast('Specimen #' + String(bug.id).padStart(4,'0') + ' updated.');
+    } else {
+      const bug = {
+        id: nextBugId++,
+        title, desc, severity, status,
+        reporter: currentUser.username,
+        createdAt: new Date()
+      };
+      bugs.unshift(bug);
+      showToast('Specimen #' + String(bug.id).padStart(4,'0') + ' logged.');
+    }
+    closeBugModal();
+    renderBugs();
+  }
+
+  function deleteBug(id){
+    const bug = bugs.find(b => b.id === id);
+    if(!bug) return;
+    if(!confirm('Delete specimen #' + String(id).padStart(4,'0') + ' — "' + bug.title + '"? This cannot be undone.')) return;
+    bugs = bugs.filter(b => b.id !== id);
+    showToast('Specimen #' + String(id).padStart(4,'0') + ' deleted.');
+    renderBugs();
+  }
+
+  function cycleStatus(id){
+    const order = ['open','progress','resolved'];
+    const bug = bugs.find(b => b.id === id);
+    const idx = order.indexOf(bug.status);
+    bug.status = order[(idx + 1) % order.length];
+    showToast('Specimen #' + String(id).padStart(4,'0') + ' marked ' + statusLabel[bug.status] + '.');
+    renderBugs();
+  }
+
+  function formatDate(d){
+    return d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function renderBugs(){
+    const grid = document.getElementById('bug-grid');
+    const search = document.getElementById('search-input').value.trim().toLowerCase();
+    const statusFilter = document.getElementById('filter-status').value;
+    const sevFilter = document.getElementById('filter-severity').value;
+
+    let list = bugs.filter(b => {
+      const matchesSearch = !search || b.title.toLowerCase().includes(search) || b.desc.toLowerCase().includes(search);
+      const matchesStatus = !statusFilter || b.status === statusFilter;
+      const matchesSev = !sevFilter || b.severity === sevFilter;
+      return matchesSearch && matchesStatus && matchesSev;
+    });
+
+    grid.innerHTML = '';
+
+    if(list.length === 0){
+      grid.innerHTML = `
+        <div class="empty">
+          <span class="mark">🔍</span>
+          <h3>No specimens match</h3>
+          <p>${bugs.length === 0 ? "Click + New Specimen to log your first bug." : "Try clearing your search or filters."}</p>
+        </div>`;
+    } else {
+      list.forEach(bug => {
+        const card = document.createElement('div');
+        card.className = 'bug-card sev-' + bug.severity;
+        card.innerHTML = `
+          <div class="bug-top">
+            <div>
+              <div class="specimen-no">SPECIMEN #${String(bug.id).padStart(4,'0')}</div>
+              <h3 class="bug-title">${escapeHtml(bug.title)}</h3>
+            </div>
+          </div>
+          <div class="badges">
+            <span class="stamp sev-${bug.severity}">${severityLabel[bug.severity]}</span>
+            <span class="stamp ${statusClass[bug.status]}">${statusLabel[bug.status]}</span>
+          </div>
+          <div class="bug-desc">${escapeHtml(bug.desc)}</div>
+          <div class="bug-meta">
+            <span>Reported by ${escapeHtml(bug.reporter)}</span>
+            <span>${formatDate(bug.createdAt)}</span>
+          </div>
+          <div class="bug-actions">
+            <button onclick="cycleStatus(${bug.id})">Advance Status</button>
+            <button onclick="openBugModal(${bug.id})">Edit</button>
+            <button class="danger" onclick="deleteBug(${bug.id})">Delete</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // stats
+    document.getElementById('stat-open').textContent = bugs.filter(b => b.status === 'open').length;
+    document.getElementById('stat-progress').textContent = bugs.filter(b => b.status === 'progress').length;
+    document.getElementById('stat-resolved').textContent = bugs.filter(b => b.status === 'resolved').length;
+    document.getElementById('stat-critical').textContent = bugs.filter(b => b.severity === 'critical').length;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  let toastTimer;
+  function showToast(msg){
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  // close modal on backdrop click
+  document.getElementById('modal-backdrop').addEventListener('click', function(e){
+    if(e.target === this) closeBugModal();
+  });
+  // close modal on Escape
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape') closeBugModal();
+  });
+</script>
+</body>
+</html>
